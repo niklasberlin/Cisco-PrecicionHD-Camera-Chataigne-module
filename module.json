@@ -1,12 +1,12 @@
 {
-  "name":"My custom module",
-  "type":"OSC",
+  "name":"Cisco-PrecicionHD-Camera",
+  "type":"Serial",
   "path":"Custom",
   
-  "version":"1.0.0",
-  "description":"My module description",
-  "url":"https://github.com/tommag/Sample-Chataigne-module",
-  "downloadURL":"https://github.com/tommag/Sample-Chataigne-module/archive/master.zip",
+  "version":"0.1.0",
+  "description":"Module to control Cisco TelePresence PrecisionHD Camera via a Serial Port using the Sony VISCA Protocol.",
+  "url":"https://github.com/niklasberlin/Cisco-PrecicionHD-Camera-Chataigne-module",
+  "downloadURL":"https://github.com/niklasberlin/Cisco-PrecicionHD-Camera-Chataigne-module/archive/refs/heads/main.zip",
 
   "hasInput":true,
   "hasOutput":true, 
@@ -15,50 +15,516 @@
   
   "defaults":
   {	
+    "protocol":"Raw",
     "autoAdd":false,
-    "oscInput":
-    {
-      "localPort":9001
-    }
+    "baudRate": 9600
   },
 
   "parameters":
   {
-    "Module param":
+    "Cam Index":
     {
-      "type":"Integer"
+      "type":"Integer",
+      "min":1,
+      "max":7,
+      "default":1
+    },
+    "Number of Presets":
+    {
+      "type":"Integer",
+      "min":1,
+      "max":20,
+      "default":3
+    },
+    "Speed":
+    {
+      "type":"Container", 
+      "collapsed":true,
+      "Zoom Speed":
+      {
+        "type":"Integer",
+        "min":0,
+        "max":15,
+        "default":9,
+        "hexMode":true
+      },
+      "Focus Speed":
+      {
+        "type":"Integer",
+        "min":0,
+        "max":15,
+        "default":10,
+        "hexMode":true
+      },
+      "Pan Speed":
+      {
+        "type":"Integer",
+        "min":0,
+        "max":15,
+        "default":10,
+        "hexMode":true
+      },
+      "Tilt Speed":
+      {
+        "type":"Integer",
+        "min":0,
+        "max":15,
+        "default":10,
+        "hexMode":true
+      }
+    },
+    "Position":
+    {
+      "type":"Container", 
+      "collapsed":true,
+      "Pan Position":
+      {
+        "type":"Integer",
+        "min":0,
+        "max":816
+      },
+      "Tilt Position":
+      {
+        "type":"Integer",
+        "min":0,
+        "max":212
+      },
+      "Zoom Position":
+      {
+        "type":"Integer",
+        "min":0,
+        "max":2885
+      },
+      "Focus Position":
+      {
+        "type":"Integer",
+        "min":4096,
+        "max":4672
+      }
+    },
+    "Presets":
+    {
+      "type":"Container", 
+      "collapsed":false
+    },
+    "Focus Mode":
+    {
+      "type":"Enum",
+      "options": { "auto":2, "manual":3},
+      "default": "auto"
     }
   },
 
-  "hideDefaultParameters": [ "autoAdd", "oscInput/localPort"],
+  "hideDefaultParameters": [ "autoAdd", "baudRate", "protocol", "messageStructure", "firstValueIsTheName"],
+
+  "hideDefaultCommands": true,
 
   "scripts": 
   [
-    "moduleScript.js"
+    "Visca_Control.js"
   ],
 
   "values":
   {
-    "Module value":
-    {
-      "type":"Float"
-    }
   },
 
   "commands":
   {
-    
-    "Custom command":
+    "Reboot":
     {
       "menu":"",  
-      "callback":"customCmd",
+      "callback":"reboot"
+    },
+    "Set Serial Speed":
+    {
+      "menu":"settings",  
+      "callback":"setSerialSpeed",
       "parameters":
       {
-        "Value":
+        "State":
+        {
+          "type":"Enum",
+          "options": { "9600":9600, "115200":115200},
+          "default":"9600"
+        }
+      }
+    },
+    "FlipImage":
+    {
+      "menu":"settings",  
+      "callback":"flip",
+      "parameters":
+      {
+        
+        "State":
+        {
+          "type":"Boolean",
+          "default":false
+        }
+      }
+    },
+    "MirrorImage":
+    {
+      "menu":"settings",  
+      "callback":"mirror",
+      "parameters":
+      {
+        "State":
+        {
+          "type":"Boolean",
+          "default":false
+        }
+      }
+    },
+    "Backlight Compensation":
+    {
+      "menu":"settings",  
+      "callback":"backlight",
+      "parameters":
+      {
+        "State":
+        {
+          "type":"Boolean",
+          "default":false
+        }
+      }
+    },
+    "Motor Movement Detection":
+    {
+      "menu":"settings",  
+      "callback":"mmDetect",
+      "parameters":
+      {
+        "State":
+        {
+          "type":"Boolean",
+          "default":false
+        }
+      }
+    },
+    "Power LED":
+    {
+      "menu":"settings",  
+      "callback":"powerLED",
+      "parameters":
+      {
+        "State":
+        {
+          "type":"Boolean",
+          "default":false
+        }
+      }
+    },
+    "Call LED":
+    {
+      "menu":"settings",  
+      "callback":"callLED",
+      "parameters":
+      {
+        "State":
+        {
+          "type":"Enum",
+          "options": { "Off":"off", "On":"on", "Blink":"blink"},
+          "default":"Off"
+        }
+      }
+    },
+    "IR Output":
+    {
+      "menu":"settings",  
+      "callback":"irOutput",
+      "parameters":
+      {
+        "State":
+        {
+          "type":"Boolean",
+          "default":false
+        }
+      }
+    },
+    "IR Control":
+    {
+      "menu":"settings",  
+      "callback":"irControl",
+      "parameters":
+      {
+        "State":
+        {
+          "type":"Boolean",
+          "default":false
+        }
+      }
+    },
+    "PT Stop":
+    {
+      "menu":"",  
+      "callback":"ptStop"
+    },
+    "PT Reset":
+    {
+      "menu":"",  
+      "callback":"ptReset"
+    },
+    "PT Up":
+    {
+      "menu":"",  
+      "callback":"ptUp"
+    },
+    "PT Down":
+    {
+      "menu":"",  
+      "callback":"ptDown"
+    },
+    "PT Left":
+    {
+      "menu":"",  
+      "callback":"ptLeft"
+    },
+    "PT Right":
+    {
+      "menu":"",  
+      "callback":"ptRight"
+    },
+    "PT Up Left":
+    {
+      "menu":"",  
+      "callback":"ptUpLeft"
+    },
+    "PT Up Right":
+    {
+      "menu":"",  
+      "callback":"ptUpRight"
+    },
+    "PT Down Left":
+    {
+      "menu":"",  
+      "callback":"ptDownLeft"
+    },
+    "PT Down Right":
+    {
+      "menu":"",  
+      "callback":"ptDownRight"
+    },
+    "Zoom Stop":
+    {
+      "menu":"",  
+      "callback":"zoomStop"
+    },
+    "Zoom Tele":
+    {
+      "menu":"",  
+      "callback":"zoomTele"
+    },
+    "Zoom Wide":
+    {
+      "menu":"",  
+      "callback":"zoomWide"
+    },
+    "Focus Stop":
+    {
+      "menu":"",  
+      "callback":"focusStop"
+    },
+    "Focus Far":
+    {
+      "menu":"",  
+      "callback":"focusFar"
+    },
+    "Focus Near":
+    {
+      "menu":"",  
+      "callback":"focusNear"
+    },
+    "Autofocus":
+    {
+      "menu":"",  
+      "callback":"focusAuto",
+      "parameters":
+      {
+        "State":
+        {
+          "type":"Boolean",
+          "default":false
+        }
+      }
+    },
+    "Request Position":
+    {
+      "menu":"requests",  
+      "callback":"reqPos"
+    },
+    "Request Zoom":
+    {
+      "menu":"requests",  
+      "callback":"reqZoom"
+    },
+    "Request Focus":
+    {
+      "menu":"requests",  
+      "callback":"reqFocus"
+    },
+    "Request Focus-Mode":
+    {
+      "menu":"requests",  
+      "callback":"reqFocusMode"
+    },
+    "Set Position/Zoom/Focus":
+    {
+      "menu":"",  
+      "callback":"setPTZF"
+    },
+    "Set Position":
+    {
+      "menu":"",  
+      "callback":"setPT"
+    },
+    "Set Gamma-Mode":
+    {
+      "menu":"settings",  
+      "callback":"gammaMode",
+      "parameters":
+      {
+        "State":
+        {
+          "type":"Enum",
+          "options": { "Auto":"auto", "manual":"manual"},
+          "default":"Auto"
+        }
+      }
+    },
+    "Set Gamma-curve":
+    {
+      "menu":"settings",  
+      "callback":"gammaTable",
+      "parameters":
+      {
+        "Table Index":
         {
           "type":"Integer",
           "min":0,
-          "max":100,
+          "max":7,
+          "default":4
+        },
+        "Slot Index":
+        {
+          "type":"Integer",
+          "min":0,
+          "max":3,
+          "default":0
+        }
+      }
+    },
+    "WB Mode":
+    {
+      "menu":"settings",  
+      "callback":"wbMode",
+      "parameters":
+      {
+        "State":
+        {
+          "type":"Enum",
+          "options": { "Auto":"auto", "manual":"manual"},
+          "default":"Auto"
+        }
+      }
+    },
+    "WB Setting":
+    {
+      "menu":"settings",  
+      "callback":"wbSetting",
+      "parameters":
+      {
+        "p":
+        {
+          "type":"Integer",
+          "min":0,
+          "max":15,
+          "default":0
+        },
+        "q":
+        {
+          "type":"Integer",
+          "min":0,
+          "max":15,
+          "default":0
+        },
+        "r":
+        {
+          "type":"Integer",
+          "min":0,
+          "max":15,
+          "default":0
+        },
+        "s":
+        {
+          "type":"Integer",
+          "min":0,
+          "max":15,
+          "default":0
+        }
+      }
+    },
+    "Exposure Mode":
+    {
+      "menu":"settings",  
+      "callback":"exposureMode",
+      "parameters":
+      {
+        "State":
+        {
+          "type":"Enum",
+          "options": { "Auto":"auto", "manual":"manual"},
+          "default":"Auto"
+        }
+      }
+    },
+    "Exposure Setting":
+    {
+      "menu":"settings",  
+      "callback":"exposureSetting",
+      "parameters":
+      {
+        "shutter":
+        {
+          "type":"Integer",
+          "min":0,
+          "max":50,
+          "default":0
+        }
+      }
+    },
+    "Gain Setting":
+    {
+      "menu":"settings",  
+      "callback":"gainSetting",
+      "parameters":
+      {
+        "p":
+        {
+          "type":"Integer",
+          "min":0,
+          "max":15,
+          "default":0
+        },
+        "q":
+        {
+          "type":"Integer",
+          "min":0,
+          "max":15,
+          "default":0
+        },
+        "r":
+        {
+          "type":"Integer",
+          "min":0,
+          "max":15,
+          "default":0
+        },
+        "s":
+        {
+          "type":"Integer",
+          "min":0,
+          "max":15,
           "default":0
         }
       }
